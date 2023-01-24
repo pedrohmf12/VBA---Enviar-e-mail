@@ -1,0 +1,132 @@
+Sub enviar_email()
+
+' Variáveis
+
+Dim objeto_outlook As Object
+Dim Email As Object
+Dim Mensagem As String
+Dim Arquivo As String
+Dim Vendedor As String
+Dim enviar_relatorio As String
+Dim relatorio_enviado As String
+
+
+'Objeto da Aplicação Outlook
+
+Set objeto_outlook = CreateObject("Outlook.Application")
+'Validação de email
+
+
+'Variável para capturar toda extensão da planilha, não importando o tamanho dela
+linha_fim = Range("A2").End(xlDown).Row
+totais_vendedores = Range("C2").End(xlDown).Row
+
+'Validando se o e-mail foi preenchido
+
+For linha = 2 To totais_vendedores
+    If Cells(linha, 1).Value = "" Then
+        MsgBox "Preencha o e-mail do " & Cells(linha, 3)
+    End If
+Next
+
+linha = 2
+
+'VALIDAÇÃO DE CONTROLE DE ENVIO
+enviar_relatorio = "SIM"
+relatorio_enviado = "NÃO"
+
+Disparado: 'Se o e-mail foi disparado, ele pula pra próxima linha da planilha
+        If enviar_relatorio = "NÃO" Or relatorio_enviado = "SIM" Then
+            linha = linha + 1
+        End If
+           'Se o campo e-mail estiver vazio, ele pula para próxima linha
+        If Cells(linha, 1).Value = "" Then
+            linha = linha + 1
+        End If
+
+'Estrutura de repetição que lerá linha por linha da Planilha Excel, á partir da linha 2
+    'Validando se o e-mail já foi enviado ou não
+    For linha = linha To totais_vendedores
+            enviar_relatorio = Cells(linha, 6).Value 'Coluna do "ENIVAR RELATÓRIOS? "
+            relatorio_enviado = Cells(linha, 7).Value 'Coluna do "RELATÓRIO ENVIADO ?"
+            
+            If enviar_relatorio = relatorio_enviado Then 'Tratando possíveis bugs, Se a Coluna enviar estiver "sim" e a coluna Enviado, estiver "sim", Ele exibe a mensagem na linha de baixo.
+                MsgBox "É PRA ENVIAR OU NÃO ?"
+                Exit Sub
+            End If
+            
+            If Cells(linha, 1).Value = "" Then 'Se o e-mail não tiver preenchido nessa linha, pula pra próxima da sequência
+                linha = linha + 1
+            End If
+            
+            If enviar_relatorio = "SIM" Or relatorio_enviado = "NÃO" Then GoTo A_Disparar Else GoTo Disparado 'Estrutura condicional, se o Relatório foi enviado, encaminha pra estrutura "Disparado", se não foi enviado, continua para a estrutura "Á Disparar"
+            
+            'Instanciei o Objeto de Novo Email
+A_Disparar:
+        Set Email = objeto_outlook.createitem(olMailItem)
+        
+        'Váriavel que armazena o caminhho do meu arquivo em PDF Concatenado com o nome definido na Planilha de acordo com cada RTV
+        
+         Arquivo = Cells(2, 8).Value & Cells(linha, 4) 'Caminho do Diretório
+         
+         'Validação do caminho do relatório
+         
+         If Dir(Arquivo) = "" Then 'Se o caminho ou arquivo não for encontrado, o programa irá exibir a mensagem de erro e parar a execução
+            MsgBox "O Arquivo " & "'" & Arquivo & "'" & "Não foi encontrado ou não existe, verifique o caminho e tente novamente."
+            Exit Sub
+         End If
+
+                  
+    
+    
+        'Estrutura With, que basicamente despeja da memória quando acaba o laço
+    With Email
+    
+        .display 'Mostra a aplicação abrindo
+        
+        .To = Cells(linha, 1).Value 'Define o Destinatário, que está na coluna A
+
+        .cc = Cells(linha, 2).Value 'Define a Cópia desse e-mail, que está na coluna B
+        
+        .Subject = Cells(2, 9) 'Recebe o Campo Assunto, que está na Coluna I
+        
+        Vendedor = Cells(linha, 3).Value 'Recebe o nome do vendedor, que está na coluna C
+        Mensagem = Cells(linha, 5).Value 'Recebe a mensagem que está na coluna E
+        
+        'Corpo do e-mail escrito em HTML
+        .HTMLBody = _
+                "<HTML>" & vbNewLine & _
+                   "<BODY> " & vbNewLine & _
+                      "Prezado(a) " & [Vendedor] & "," & _
+                      vbNewLine & _
+                      "<P></P> " & vbNewLine & _
+                      "<P></P> " & vbNewLine & _
+                      [Mensagem] & vbNewLine & _
+                      "<P>Atenciosamente, </P>" & _
+                   "</BODY>" & vbNewLine & _
+                "</HTML>" & _
+        .HTMLBody
+         'Fechamento da Estrutura HTML que também define o Carimbo.
+    
+        .Attachments.Add Arquivo 'Função que anexa o Documento que está armazenado na variável Arquivo, ao e-mail
+        .send 'Função que envia o e-mail
+    
+    End With 'Fechamento da estrutura With
+    Cells(linha, 7).Value = "SIM" 'Assim que terminar de enviar, preencher o campo
+    
+        
+Next 'Fechamento do laço de repetição.
+
+'MENSAGEM NA TELA QUANDO O PROGRAMA ACABA A EXECUÇÃO
+
+MsgBox "Emails enviado com sucesso", vbInformation, "Relatório de Vendas"
+
+'BASICAMENTE, DESEPEJO DE MEMÓRIA
+Set objeto_outlook = Nothing
+Set Email = Nothing
+
+    
+End Sub
+    
+
+
